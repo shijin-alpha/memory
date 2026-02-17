@@ -20,16 +20,13 @@ export const MemoryCard = ({ url, position, rotation, isActive, setActive, id, .
             easing.damp(ref.current.material, 'zoom', 1, 0.25, delta)
         }
 
-        // Active: Move closer to center (same angle), Height 0, Rotate to face center
-        // Original radius ~8. Target radius ~4? Or maybe closer ~2 for "in your face".
-        // We divide x/z by 4 to bring it to radius 2.
+        // Active: Move closer to camera target z = -2 (since camera is at 0, looking at -z)
         const targetPos = isActive
-            ? [position[0] / 3, 0, position[2] / 3] // Pull to radius ~2.5, Height 0
+            ? [position[0], position[1], -2]
             : position
 
-        // If active, look at center (which is where camera is)
-        // Original rotation matches this largely, but let's ensure it.
-        const targetRot = isActive ? rotation : rotation
+        // Rotation is always 0 in grid, but keep it flexible
+        const targetRot = rotation
 
         easing.damp3(ref.current.position, targetPos, 0.4, delta)
         easing.dampE(ref.current.rotation, targetRot, 0.4, delta)

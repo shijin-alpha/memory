@@ -8,18 +8,24 @@ import { memoryImages } from '../memories'
 
 // Generate positions for the "memories"
 // We'll arrange them in a cylinder around the user
+// Collage/Scatter layout settings
 const MEMORY_COUNT = 50
-const RADIUS = 8
-const HEIGHT = 10
 
 const memories = Array.from({ length: MEMORY_COUNT }, (_, i) => {
-    const theta = (Math.PI * 2 * i) / MEMORY_COUNT
-    const x = RADIUS * Math.cos(theta)
-    const z = RADIUS * Math.sin(theta)
-    // Randomize height a bit, but keep it within bounds
-    const y = (Math.random() - 0.5) * HEIGHT * 2
-    // Look at center (Face inwards)
-    const rotation = [0, -theta - Math.PI / 2, 0]
+    // Randomize position "free will"
+    // Spread X wide: -15 to 15
+    const x = (Math.random() - 0.5) * 30
+    // Spread Y tall: -20 to 20 (or more to fit them all without too much overlap)
+    const y = (Math.random() - 0.5) * 60
+    // Random Z depth: -12 to -8 (around -10)
+    const z = -10 + (Math.random() - 0.5) * 4
+
+    // Slight random rotation for "mixed" feel, but mostly facing forward
+    const rotation = [
+        (Math.random() - 0.5) * 0.2,
+        (Math.random() - 0.5) * 0.2,
+        (Math.random() - 0.5) * 0.1
+    ]
 
     // Cycle through the user's images
     const url = memoryImages[i % memoryImages.length] || `https://picsum.photos/seed/${i}/400/600`
@@ -44,18 +50,34 @@ export const Experience = () => {
     }, [gl])
 
     useFrame((state, delta) => {
-        // Stop rotation when an image is focused
-        if (!activeId) {
-            // Apply scroll momentum
-            // Base rotation + Scroll momentum + Mouse influence (parallax)
-            // Mouse x is -1 to 1. We'll add a subtle push based on where the mouse is.
-            groupRef.current.rotation.y += delta * 0.02 + scrollSpeed.current + (state.pointer.x * delta * 0.1)
+        // Stop movement when an image is focused
+        if (activeId === null) {
+            // Apply scroll momentum to Y position
+            // Mouse x can still tilt slightly for parallax if desired, or removed.
+            // Let's keep a subtle mouse parallax on rotation, but main scroll is Position Y.
 
-            // Decay scroll speed (friction)
-            // 0.98 is much smoother/heavier than 0.95
-            scrollSpeed.current *= 0.98
+            groupRef.current.position.y += scrollSpeed.current * delta * 5 // Speed factor
+
+            // Decay scroll speed
+            scrollSpeed.current *= 0.95
+
+            // Optional: localized mouse parallax
+            easing.dampE(groupRef.current.rotation, [state.pointer.y * 0.1, state.pointer.x * 0.1, 0], 0.25, delta)
         } else {
-            easing.damp(groupRef.current.rotation, 'y', groupRef.current.rotation.y, 0.25, delta)
+            // If active, we might want to center the group on the active item?
+            // Or just stop moving.
+            // If we stop moving, the item might be off-screen if we scrolled.
+            // For "straight center align correctly", we probably want the Active item to be in center.
+            // The Active item is at memories[activeId].position.
+            // We want (GroupPos + ItemPos) = (0,0,0) (or roughly center screen).
+            // So GroupTarget = -ItemPos.
+
+            const activeMem = memories[activeId]
+            const targetY = -activeMem.position[1]
+            const targetX = -activeMem.position[0]
+
+            easing.damp3(groupRef.current.position, [targetX, targetY, 0], 0.25, delta)
+            easing.dampE(groupRef.current.rotation, [0, 0, 0], 0.25, delta)
         }
     })
 
