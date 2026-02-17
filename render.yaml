@@ -2,5 +2,5 @@ services:
   - type: web
     name: flowing-memories
     env: static
-    buildCommand: npm run build
+    buildCommand: npx vite build
     staticPublishPath: ./dist
